@@ -202,6 +202,7 @@ Liquidize.MadeWithMV.WaitTime = Number(Liquidize.MadeWithMV.Parameters["Wait Tim
             if (Liquidize.MadeWithMV.ShowMV && this._mvFadeOut == true) {
                 if (!this._customFadeIn && this._fadeDuration == 0) {
                     this._customSplash.opacity = 255;
+                    this._customWaitTime = Liquidize.MadeWithMV.WaitTime;
                     this.startFadeIn(Liquidize.MadeWithMV.FadeInTime, false);
                     this._customFadeIn = true;
                 } else {

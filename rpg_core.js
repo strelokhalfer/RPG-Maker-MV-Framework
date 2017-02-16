@@ -1,5 +1,5 @@
 //=============================================================================
-// rpg_core.js v1.3.0
+// rpg_core.js v1.3.1
 //=============================================================================
 
 //-----------------------------------------------------------------------------
@@ -180,7 +180,7 @@ Utils.RPGMAKER_NAME = 'MV';
  * @type String
  * @final
  */
-Utils.RPGMAKER_VERSION = "1.3.0";
+Utils.RPGMAKER_VERSION = "1.3.1";
 
 /**
  * Checks whether the option is in the query string.
@@ -309,7 +309,7 @@ CacheEntry.prototype.free = function (byTTL) {
     this.freedByTTL = byTTL || false;
     if (this.cached) {
         this.cached = false;
-        delete this.cache._inner[key];
+        delete this.cache._inner[this.key];
     }
 };
 
@@ -1738,7 +1738,7 @@ Graphics.callGC = function() {
     if (Graphics.isWebGL()) {
         Graphics._renderer.textureGC.run();
     }
-}
+};
 
 
 /**
@@ -4964,6 +4964,8 @@ ShaderTilemap.prototype.constructor = ShaderTilemap;
 
 // we need this constant for some platforms (Samsung S4, S5, Tab4, HTC One H8)
 PIXI.glCore.VertexArrayObject.FORCE_NATIVE = true;
+PIXI.GC_MODES.DEFAULT = PIXI.GC_MODES.AUTO;
+PIXI.tilemap.TileRenderer.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
 
 /**
  * Uploads animation state in renderer
@@ -5594,19 +5596,14 @@ function ScreenSprite() {
     this.initialize.apply(this, arguments);
 }
 
-ScreenSprite.prototype = Object.create(PIXI.Sprite.prototype);
+ScreenSprite.prototype = Object.create(PIXI.Container.prototype);
 ScreenSprite.prototype.constructor = ScreenSprite;
 
-ScreenSprite.prototype.initialize = function() {
-    var texture = new PIXI.Texture(new PIXI.BaseTexture());
+ScreenSprite.prototype.initialize = function () {
+    PIXI.Container.call(this);
 
-    PIXI.Sprite.call(this, texture);
-
-    this._bitmap = new Bitmap(1, 1);
-    this.texture.baseTexture = this._bitmap.baseTexture;
-    this.texture.frame = new Rectangle(0, 0, 1, 1);
-    this.scale.x = Graphics.width;
-    this.scale.y = Graphics.height;
+    this._graphics = new PIXI.Graphics();
+    this.addChild(this._graphics);
     this.opacity = 0;
 
     this._red = -1;
@@ -5623,11 +5620,42 @@ ScreenSprite.prototype.initialize = function() {
  * @type Number
  */
 Object.defineProperty(ScreenSprite.prototype, 'opacity', {
-    get: function() {
+    get: function () {
         return this.alpha * 255;
     },
-    set: function(value) {
+    set: function (value) {
         this.alpha = value.clamp(0, 255) / 255;
+    },
+    configurable: true
+});
+
+ScreenSprite.YEPWarned = false;
+ScreenSprite.warnYep = function () {
+    if (!ScreenSprite.YEPWarned) {
+        console.log("Deprecation warning. Please update YEP_CoreEngine. ScreenSprite is not a sprite, it has graphics inside.");
+        ScreenSprite.YEPWarned = true;
+    }
+};
+
+Object.defineProperty(ScreenSprite.prototype, 'anchor', {
+    get: function () {
+        ScreenSprite.warnYep();
+        this.scale.x = 1;
+        this.scale.y = 1;
+        return {x: 0, y: 0};
+    },
+    set: function (value) {
+        this.alpha = value.clamp(0, 255) / 255;
+    },
+    configurable: true
+});
+
+Object.defineProperty(ScreenSprite.prototype, 'blendMode', {
+    get: function () {
+        return this._graphics.blendMode;
+    },
+    set: function (value) {
+        this._graphics.blendMode = value;
     },
     configurable: true
 });
@@ -5637,7 +5665,7 @@ Object.defineProperty(ScreenSprite.prototype, 'opacity', {
  *
  * @method setBlack
  */
-ScreenSprite.prototype.setBlack = function() {
+ScreenSprite.prototype.setBlack = function () {
     this.setColor(0, 0, 0);
 };
 
@@ -5646,7 +5674,7 @@ ScreenSprite.prototype.setBlack = function() {
  *
  * @method setWhite
  */
-ScreenSprite.prototype.setWhite = function() {
+ScreenSprite.prototype.setWhite = function () {
     this.setColor(255, 255, 255);
 };
 
@@ -5658,7 +5686,7 @@ ScreenSprite.prototype.setWhite = function() {
  * @param {Number} g The green value in the range (0, 255)
  * @param {Number} b The blue value in the range (0, 255)
  */
-ScreenSprite.prototype.setColor = function(r, g, b) {
+ScreenSprite.prototype.setColor = function (r, g, b) {
     if (this._red !== r || this._green !== g || this._blue !== b) {
         r = Math.round(r || 0).clamp(0, 255);
         g = Math.round(g || 0).clamp(0, 255);
@@ -5667,25 +5695,13 @@ ScreenSprite.prototype.setColor = function(r, g, b) {
         this._green = g;
         this._blue = b;
         this._colorText = Utils.rgbToCssColor(r, g, b);
-        this._bitmap.fillAll(this._colorText);
-    }
-};
 
-/**
- * @method _renderCanvas
- * @param {Object} renderSession
- * @private
- */
-ScreenSprite.prototype._renderCanvas = function(renderer) {
-    if (this.visible && this.alpha > 0) {
-        var context = renderer.context;
-        var t = this.worldTransform;
-        var r = renderer.resolution;
-        context.setTransform(t.a, t.b, t.c, t.d, t.tx * r, t.ty * r);
-        context.globalCompositeOperation = renderer.blendModes[this.blendMode];
-        context.globalAlpha = this.alpha;
-        context.fillStyle = this._colorText;
-        context.fillRect(0, 0, Graphics.width, Graphics.height);
+        var graphics = this._graphics;
+        graphics.clear();
+        var intColor = (r << 16) | (g << 8) | b;
+        graphics.beginFill(intColor, 1);
+        //whole screen with zoom. BWAHAHAHAHA
+        graphics.drawRect(-Graphics.width * 5, -Graphics.height * 5, Graphics.width * 10, Graphics.height * 10);
     }
 };
 
@@ -7570,8 +7586,8 @@ WebAudio.prototype._load = function(url) {
  */
 WebAudio.prototype._onXhrLoad = function(xhr) {
     var array = xhr.response;
-    this._readLoopComments(array);
     if(Decrypter.hasEncryptedAudio) array = Decrypter.decryptArrayBuffer(array);
+    this._readLoopComments(new Uint8Array(array));
     WebAudio._context.decodeAudioData(array, function(buffer) {
         this._buffer = buffer;
         this._totalTime = buffer.duration;
