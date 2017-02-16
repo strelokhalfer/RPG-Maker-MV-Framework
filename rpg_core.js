@@ -1,5 +1,5 @@
 //=============================================================================
-// rpg_core.js v1.1.0
+// rpg_core.js v1.2.0
 //=============================================================================
 
 //-----------------------------------------------------------------------------
@@ -171,7 +171,7 @@ Utils.RPGMAKER_NAME = 'MV';
  * @type String
  * @final
  */
-Utils.RPGMAKER_VERSION = "1.1.0";
+Utils.RPGMAKER_VERSION = "1.2.0";
 
 /**
  * Checks whether the option is in the query string.
@@ -4750,6 +4750,15 @@ Object.defineProperty(TilingSprite.prototype, 'opacity', {
     },
     configurable: true
 });
+
+TilingSprite.prototype.generateTilingTexture = function(arg) {
+    PIXI.TilingSprite.prototype.generateTilingTexture.call(this, arg);
+    // Purge from Pixi's Cache
+    if (Graphics.isWebGL()) {
+        if (this.tilingTexture.canvasBuffer)
+            PIXI.Texture.removeTextureFromCache(this.tilingTexture.canvasBuffer.canvas._pixiId);
+    }
+};
 
 /**
  * Updates the tiling sprite for each frame.

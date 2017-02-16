@@ -1,5 +1,5 @@
 //=============================================================================
-// rpg_sprites.js v1.1.0
+// rpg_sprites.js v1.2.0
 //=============================================================================
 
 //-----------------------------------------------------------------------------
@@ -1428,7 +1428,7 @@ Sprite_Animation.prototype.updateCellSprite = function(sprite, cell) {
         sprite.scale.y = cell[3] / 100;
         sprite.opacity = cell[6];
         sprite.blendMode = cell[7];
-        sprite.visible = this._target.visible;
+        sprite.visible = true;
     } else {
         sprite.visible = false;
     }

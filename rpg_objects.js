@@ -1,5 +1,5 @@
 //=============================================================================
-// rpg_objects.js v1.1.0
+// rpg_objects.js v1.2.0
 //=============================================================================
 
 //-----------------------------------------------------------------------------
@@ -1089,7 +1089,7 @@ Game_Picture.prototype.updateTone = function() {
 };
 
 Game_Picture.prototype.updateRotation = function() {
-    if (this._rotationSpeed > 0) {
+    if (this._rotationSpeed !== 0) {
         this._angle += this._rotationSpeed / 2;
     }
 };
